@@ -1,0 +1,19 @@
+bin/
+obj/
+.vs/
+*.user
+*.suo
+
+appsettings.Development.json
+
+*.mdf
+*.ldf
+*.bak
+
+# Local secrets and runtime uploads
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+wwwroot/uploads/

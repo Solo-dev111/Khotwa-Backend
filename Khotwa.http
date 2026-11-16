@@ -1,0 +1,6 @@
+@Khotwa_HostAddress = http://localhost:5163
+
+GET {{Khotwa_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
