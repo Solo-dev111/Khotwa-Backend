@@ -17,5 +17,7 @@
         public User Student { get; set; } = null!;
 
         public Course Course { get; set; } = null!;
+
+        public ICollection<LessonCompletion> LessonCompletions { get; set; } = new List<LessonCompletion>();
     }
 }

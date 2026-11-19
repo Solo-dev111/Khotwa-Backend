@@ -47,6 +47,9 @@ public class EnrollmentsController : ControllerBase
             EnrollmentActionResult.AlreadyEnrolled =>
                 Conflict("Student is already enrolled"),
 
+            EnrollmentActionResult.InvalidCompletion =>
+                BadRequest("Completion is determined by completed lessons"),
+
             EnrollmentActionResult.PurchasedEnrollment =>
                 Conflict("Cannot delete a purchased enrollment"),
 

@@ -22,9 +22,24 @@ public class KhotwaDbContext : DbContext
     public DbSet<OrderItem> OrderItems { get; set; } = null!;
     public DbSet<Review> Reviews { get; set; } = null!;
 
+    public DbSet<Favorite> Favorites { get; set; } = null!;
+    public DbSet<LessonCompletion> LessonCompletions { get; set; } = null!;
+    public DbSet<CourseCertificate> CourseCertificates { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<Favorite>().HasKey(x => new { x.StudentId, x.CourseId });
+        modelBuilder.Entity<Favorite>().HasOne(x => x.Student).WithMany().HasForeignKey(x => x.StudentId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<Favorite>().HasOne(x => x.Course).WithMany().HasForeignKey(x => x.CourseId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<LessonCompletion>().HasKey(x => new { x.EnrollmentId, x.LessonId });
+        modelBuilder.Entity<LessonCompletion>().HasOne(x => x.Enrollment).WithMany(x => x.LessonCompletions).HasForeignKey(x => x.EnrollmentId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<LessonCompletion>().HasOne(x => x.Lesson).WithMany().HasForeignKey(x => x.LessonId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<CourseCertificate>().HasKey(x => x.EnrollmentId);
+        modelBuilder.Entity<CourseCertificate>().Property(x => x.EnrollmentId).ValueGeneratedNever();
+        modelBuilder.Entity<CourseCertificate>().HasOne(x => x.Enrollment).WithOne().HasForeignKey<CourseCertificate>(x => x.EnrollmentId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<CourseCertificate>().HasIndex(x => x.CertificateNumber).IsUnique();
 
         // Unique Email
         modelBuilder.Entity<User>()

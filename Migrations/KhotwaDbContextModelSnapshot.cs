@@ -139,6 +139,8 @@ namespace Khotwa.Migrations
                     b.Property<int>("CourseId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("DurationMinutes").HasColumnType("int");
+
                     b.Property<bool>("IsPreview")
                         .HasColumnType("bit");
 
@@ -311,6 +313,58 @@ namespace Khotwa.Migrations
 
                     b.ToTable("Users");
                 });
+
+            modelBuilder.Entity("Khotwa.Models.Favorite", b =>
+            {
+                b.Property<int>("StudentId").HasColumnType("int");
+                b.Property<int>("CourseId").HasColumnType("int");
+                b.Property<DateTime>("CreatedAt").HasColumnType("datetime2");
+                b.HasKey("StudentId", "CourseId");
+                b.HasIndex("CourseId");
+                b.ToTable("Favorites");
+            });
+            modelBuilder.Entity("Khotwa.Models.LessonCompletion", b =>
+            {
+                b.Property<int>("EnrollmentId").HasColumnType("int");
+                b.Property<int>("LessonId").HasColumnType("int");
+                b.Property<DateTime>("CompletedAt").HasColumnType("datetime2");
+                b.HasKey("EnrollmentId", "LessonId");
+                b.HasIndex("LessonId");
+                b.ToTable("LessonCompletions");
+            });
+            modelBuilder.Entity("Khotwa.Models.CourseCertificate", b =>
+            {
+                b.Property<int>("EnrollmentId").ValueGeneratedNever().HasColumnType("int");
+                b.Property<Guid>("CertificateNumber").HasColumnType("uniqueidentifier");
+                b.Property<string>("StudentName").IsRequired().HasMaxLength(100).HasColumnType("nvarchar(100)");
+                b.Property<string>("CourseTitle").IsRequired().HasMaxLength(200).HasColumnType("nvarchar(200)");
+                b.Property<string>("InstructorName").IsRequired().HasMaxLength(100).HasColumnType("nvarchar(100)");
+                b.Property<int?>("DurationMinutes").HasColumnType("int");
+                b.Property<DateTime>("IssuedAt").HasColumnType("datetime2");
+                b.HasKey("EnrollmentId");
+                b.HasIndex("CertificateNumber").IsUnique();
+                b.ToTable("CourseCertificates");
+            });
+            modelBuilder.Entity("Khotwa.Models.Favorite", b =>
+            {
+                b.HasOne("Khotwa.Models.User", "Student").WithMany().HasForeignKey("StudentId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+                b.HasOne("Khotwa.Models.Course", "Course").WithMany().HasForeignKey("CourseId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+                b.Navigation("Student");
+                b.Navigation("Course");
+            });
+            modelBuilder.Entity("Khotwa.Models.LessonCompletion", b =>
+            {
+                b.HasOne("Khotwa.Models.Enrollment", "Enrollment").WithMany("LessonCompletions").HasForeignKey("EnrollmentId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+                b.HasOne("Khotwa.Models.Lesson", "Lesson").WithMany().HasForeignKey("LessonId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+                b.Navigation("Enrollment");
+                b.Navigation("Lesson");
+            });
+            modelBuilder.Entity("Khotwa.Models.CourseCertificate", b =>
+            {
+                b.HasOne("Khotwa.Models.Enrollment", "Enrollment").WithOne().HasForeignKey("Khotwa.Models.CourseCertificate", "EnrollmentId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+                b.Navigation("Enrollment");
+            });
+            modelBuilder.Entity("Khotwa.Models.Enrollment", b => { b.Navigation("LessonCompletions"); });
 
             modelBuilder.Entity("Khotwa.Models.Course", b =>
                 {
