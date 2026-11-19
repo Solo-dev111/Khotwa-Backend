@@ -14,11 +14,11 @@ namespace Khotwa.DTOs
         [MaxLength(2048)]
         public string? VideoUrl { get; set; }
 
-        [Range(0, int.MaxValue)]
         [Required]
         [Range(1, 1440)]
         public int? DurationMinutes { get; set; }
 
+        [Range(0, int.MaxValue)]
         public int SortOrder { get; set; }
 
         public bool IsPreview { get; set; } = false;
