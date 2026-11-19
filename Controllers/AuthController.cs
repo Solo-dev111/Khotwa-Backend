@@ -12,10 +12,42 @@ namespace Khotwa.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly AuthService _authService;
+    private readonly IWebHostEnvironment _environment;
 
-    public AuthController(AuthService authService)
+    public AuthController(AuthService authService, IWebHostEnvironment environment)
     {
         _authService = authService;
+        _environment = environment;
+    }
+
+    // FIRST-RUN SETUP (local development only)
+    [HttpGet("registration-status")]
+    [AllowAnonymous]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> GetRegistrationStatus()
+    {
+        bool canRegisterAdmin = _environment.IsDevelopment()
+            && await _authService.CanRegisterAdminAsync();
+
+        return Ok(new { canRegisterAdmin });
+    }
+
+    [HttpPost("register/admin")]
+    [AllowAnonymous]
+    public async Task<IActionResult> RegisterFirstAdmin([FromBody] RegisterDto dto)
+    {
+        if (!_environment.IsDevelopment())
+            return StatusCode(403, "Initial admin registration is unavailable");
+
+        if (string.IsNullOrWhiteSpace(dto.FullName))
+            return BadRequest("Full name is required");
+
+        var result = await _authService.RegisterAsync(dto, UserRole.Admin);
+
+        if (result == null)
+            return StatusCode(403, "Initial admin registration is no longer available");
+
+        return Ok(result);
     }
 
     // REGISTER STUDENT

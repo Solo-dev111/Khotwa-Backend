@@ -26,8 +26,38 @@ public class AuthService
         _configuration = configuration;
     }
 
-    // REGISTER STUDENT OR INSTRUCTOR
+    // The public admin option is available only while the Users table is empty.
+    public async Task<bool> CanRegisterAdminAsync()
+    {
+        return !await _context.Users.AnyAsync();
+    }
+
     public async Task<AuthResponseDto?> RegisterAsync(
+        RegisterDto dto, UserRole role)
+    {
+        if (role != UserRole.Admin)
+            return await RegisterCoreAsync(dto, role);
+
+        // Hold an exclusive SQL Server table lock until commit. A concurrent signup
+        // cannot insert a user between the empty-table check and the admin creation.
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+
+        bool hasUsers = await _context.Users
+            .FromSqlRaw("SELECT * FROM [Users] WITH (TABLOCKX, HOLDLOCK)")
+            .AnyAsync();
+
+        if (hasUsers)
+            return null;
+
+        var result = await RegisterCoreAsync(dto, role);
+        if (result != null)
+            await transaction.CommitAsync();
+
+        return result;
+    }
+
+    // Shared registration rules, password hashing and JWT creation.
+    private async Task<AuthResponseDto?> RegisterCoreAsync(
         RegisterDto dto, UserRole role)
     {
         string email = dto.Email.Trim().ToLowerInvariant();
