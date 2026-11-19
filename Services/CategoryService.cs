@@ -3,6 +3,8 @@ using Khotwa.Data;
 using Khotwa.DTOs;
 using Khotwa.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.SqlClient;
+using System.Data;
 
 namespace Khotwa.Services;
 
@@ -10,7 +12,9 @@ public enum DeleteCategoryResult
 {
     Deleted,
     NotFound,
-    HasCourses
+    HasCourses,
+    InvalidTarget,
+    Changed
 }
 
 public class CategoryService
@@ -56,7 +60,8 @@ public class CategoryService
             {
                 Id = c.Id,
                 Name = c.Name,
-                Description = c.Description
+                Description = c.Description,
+                CourseCount = c.Courses.Count()
             })
             .ToListAsync();
 
@@ -79,7 +84,8 @@ public class CategoryService
             {
                 Id = c.Id,
                 Name = c.Name,
-                Description = c.Description
+                Description = c.Description,
+                CourseCount = c.Courses.Count()
             })
             .FirstOrDefaultAsync();
     }
@@ -102,7 +108,8 @@ public class CategoryService
         {
             Id = category.Id,
             Name = category.Name,
-            Description = category.Description
+            Description = category.Description,
+            CourseCount = 0
         };
     }
 
@@ -124,25 +131,71 @@ public class CategoryService
         return true;
     }
 
-    // DELETE
-    public async Task<DeleteCategoryResult> DeleteAsync(int id)
+    // All possible destinations, independent of the current table search or page.
+    public async Task<List<CategoryDto>> GetTransferTargetsAsync(int id)
     {
-        var category = await _context.Categories.FindAsync(id);
+        return await _context.Categories.AsNoTracking()
+            .Where(c => c.Id != id)
+            .OrderBy(c => c.Name).ThenBy(c => c.Id)
+            .Select(c => new CategoryDto
+            {
+                Id = c.Id,
+                Name = c.Name,
+                Description = c.Description,
+                CourseCount = c.Courses.Count()
+            })
+            .ToListAsync();
+    }
 
-        if (category == null)
-            return DeleteCategoryResult.NotFound;
+    // Move courses and delete the category atomically; never delete course data.
+    public async Task<DeleteCategoryResult> DeleteAsync(
+        int id, int? targetCategoryId = null, int? expectedCourseCount = null)
+    {
+        if (targetCategoryId.HasValue &&
+            (targetCategoryId.Value <= 0 || targetCategoryId.Value == id))
+            return DeleteCategoryResult.InvalidTarget;
 
-        // Do not delete categories containing courses
-        bool hasCourses = await _context.Courses
-            .AnyAsync(c => c.CategoryId == id);
+        try
+        {
+            await using var transaction = await _context.Database
+                .BeginTransactionAsync(IsolationLevel.Serializable);
 
-        if (hasCourses)
-            return DeleteCategoryResult.HasCourses;
+            if (!await _context.Categories.AnyAsync(c => c.Id == id))
+                return DeleteCategoryResult.NotFound;
 
-        _context.Categories.Remove(category);
+            var courses = _context.Courses.Where(c => c.CategoryId == id);
+            int courseCount = await courses.CountAsync();
 
-        await _context.SaveChangesAsync();
+            if (expectedCourseCount.HasValue && expectedCourseCount.Value != courseCount)
+                return DeleteCategoryResult.Changed;
 
-        return DeleteCategoryResult.Deleted;
+            if (courseCount > 0 && !targetCategoryId.HasValue)
+                return DeleteCategoryResult.HasCourses;
+
+            if (targetCategoryId.HasValue)
+            {
+                int target = targetCategoryId.Value;
+                if (!await _context.Categories.AnyAsync(c => c.Id == target))
+                    return DeleteCategoryResult.Changed;
+
+                if (courseCount > 0)
+                    await courses.ExecuteUpdateAsync(setters => setters
+                        .SetProperty(c => c.CategoryId, target));
+            }
+
+            int deleted = await _context.Categories
+                .Where(c => c.Id == id).ExecuteDeleteAsync();
+
+            if (deleted != 1)
+                return DeleteCategoryResult.Changed;
+
+            await transaction.CommitAsync();
+            return DeleteCategoryResult.Deleted;
+        }
+        catch (SqlException ex) when (ex.Number is 547 or 1205 or 1222)
+        {
+            // FK conflict, deadlock or lock timeout: transaction is disposed/rolled back.
+            return DeleteCategoryResult.Changed;
+        }
     }
 }
