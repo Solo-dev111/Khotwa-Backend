@@ -27,5 +27,7 @@
         public string InstructorName { get; set; } = string.Empty;
 
         public int LessonCount { get; set; }
+
+        public int? DurationMinutes { get; set; }
     }
 }

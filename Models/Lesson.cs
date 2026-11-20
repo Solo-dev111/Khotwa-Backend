@@ -14,6 +14,8 @@ namespace Khotwa.Models
 
         public string? VideoUrl { get; set; }
 
+        public int? DurationMinutes { get; set; }
+
         public int SortOrder { get; set; }
 
         public bool IsPreview { get; set; } = false;

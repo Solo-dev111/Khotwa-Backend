@@ -25,7 +25,7 @@ public class CourseService
     }
 
     // Convert Courses to DTOs
-    private static IQueryable<CourseDto> ToDtoQuery(
+    internal static IQueryable<CourseDto> ToDtoQuery(
         IQueryable<Course> query)
     {
         return query.Select(c => new CourseDto
@@ -45,7 +45,9 @@ public class CourseService
             InstructorId = c.InstructorId,
             InstructorName = c.Instructor.FullName,
 
-            LessonCount = c.Lessons.Count()
+            LessonCount = c.Lessons.Count(),
+            DurationMinutes = c.Lessons.Any() && !c.Lessons.Any(l => l.DurationMinutes == null)
+                ? c.Lessons.Sum(l => l.DurationMinutes) : null
         });
     }
 

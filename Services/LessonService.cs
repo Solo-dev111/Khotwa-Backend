@@ -31,6 +31,7 @@ public class LessonService
             Title = lesson.Title,
             Content = lesson.Content,
             VideoUrl = lesson.VideoUrl,
+            DurationMinutes = lesson.DurationMinutes,
             SortOrder = lesson.SortOrder,
             IsPreview = lesson.IsPreview
         };
@@ -72,6 +73,7 @@ public class LessonService
                 Id = l.Id,
                 CourseId = l.CourseId,
                 Title = l.Title,
+                DurationMinutes = l.DurationMinutes,
                 SortOrder = l.SortOrder,
                 IsPreview = l.IsPreview
             })
@@ -145,6 +147,7 @@ public class LessonService
             Title = dto.Title.Trim(),
             Content = dto.Content,
             VideoUrl = dto.VideoUrl,
+            DurationMinutes = dto.DurationMinutes,
             SortOrder = dto.SortOrder,
             IsPreview = dto.IsPreview
         };
@@ -178,6 +181,7 @@ public class LessonService
         lesson.Title = dto.Title.Trim();
         lesson.Content = dto.Content;
         lesson.VideoUrl = dto.VideoUrl;
+        lesson.DurationMinutes = dto.DurationMinutes;
         lesson.SortOrder = dto.SortOrder;
         lesson.IsPreview = dto.IsPreview;
 

@@ -171,7 +171,12 @@ public class UsersController : ControllerBase
                 NotFound("User not found"),
 
             UserOperationResult.HasRelatedRecords =>
-                Conflict("User has related records"),
+                Conflict(new
+                {
+                    code = "USER_HAS_RELATED_RECORDS",
+                    message = "User has related records",
+                    dependencies = await _service.GetDeletionDependenciesAsync(id)
+                }),
 
             UserOperationResult.CannotDeleteSelf =>
                 Conflict("Cannot delete your own account"),

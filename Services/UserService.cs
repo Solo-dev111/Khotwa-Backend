@@ -186,6 +186,16 @@ public class UserService
         return UserOperationResult.Success;
     }
 
+    // Explain which protected relationships prevent account deletion.
+    public async Task<UserDeletionDependencies> GetDeletionDependenciesAsync(int userId)
+    {
+        return new UserDeletionDependencies(
+            await _context.Courses.CountAsync(c => c.InstructorId == userId),
+            await _context.Enrollments.CountAsync(e => e.StudentId == userId),
+            await _context.Orders.CountAsync(o => o.StudentId == userId),
+            await _context.Reviews.CountAsync(r => r.StudentId == userId));
+    }
+
     // DELETE
     public async Task<UserOperationResult> DeleteAsync(
         int id,
@@ -204,7 +214,16 @@ public class UserService
 
         _context.Users.Remove(user);
 
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is Microsoft.Data.SqlClient.SqlException { Number: 547 })
+        {
+            // A related record may have been added after the initial check.
+            _context.ChangeTracker.Clear();
+            return UserOperationResult.HasRelatedRecords;
+        }
 
         return UserOperationResult.Success;
     }
@@ -231,3 +250,5 @@ public class UserService
         return false;
     }
 }
+
+public sealed record UserDeletionDependencies(int Courses, int Enrollments, int Orders, int Reviews);

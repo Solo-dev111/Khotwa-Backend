@@ -13,7 +13,8 @@ public enum EnrollmentActionResult
     CourseUnavailable,
     PaymentRequired,
     AlreadyEnrolled,
-    PurchasedEnrollment
+    PurchasedEnrollment,
+    InvalidCompletion
 }
 
 public class EnrollmentService
@@ -37,7 +38,8 @@ public class EnrollmentService
             CourseId = e.CourseId,
             CourseTitle = e.Course.Title,
             EnrolledAt = e.EnrolledAt,
-            IsCompleted = e.IsCompleted
+            IsCompleted = e.Course.Lessons.Any() && !e.Course.Lessons.Any(l =>
+                !e.LessonCompletions.Any(x => x.LessonId == l.Id))
         });
     }
 
@@ -64,7 +66,8 @@ public class EnrollmentService
 
         if (isCompleted.HasValue)
             query = query.Where(e =>
-                e.IsCompleted == isCompleted.Value);
+                (e.Course.Lessons.Any() && !e.Course.Lessons.Any(l =>
+                    !e.LessonCompletions.Any(x => x.LessonId == l.Id))) == isCompleted.Value);
 
         int count = await query.CountAsync();
 
@@ -177,7 +180,13 @@ public class EnrollmentService
         if (enrollment == null)
             return EnrollmentActionResult.NotFound;
 
-        enrollment.IsCompleted = dto.IsCompleted;
+        // Completion is derived from lesson records, not a client-supplied flag.
+        bool completed = await _context.Lessons.AnyAsync(l => l.CourseId == enrollment.CourseId)
+            && !await _context.Lessons.AnyAsync(l => l.CourseId == enrollment.CourseId &&
+                !_context.LessonCompletions.Any(x => x.EnrollmentId == id && x.LessonId == l.Id));
+        if (dto.IsCompleted != completed)
+            return EnrollmentActionResult.InvalidCompletion;
+        enrollment.IsCompleted = completed;
 
         await _context.SaveChangesAsync();
 
