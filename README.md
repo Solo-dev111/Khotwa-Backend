@@ -9,9 +9,17 @@ Install the .NET 10 SDK and configure your SQL Server connection:
 ```powershell
 dotnet restore
 dotnet user-secrets set "ConnectionStrings:KhotwaConnection" "Server=YOUR_SERVER;Database=Khotwa;Trusted_Connection=True;TrustServerCertificate=True"
-dotnet user-secrets set "Jwt:Key" "YOUR_RANDOM_SECRET_OF_AT_LEAST_32_BYTES"
 dotnet run --launch-profile https
 ```
+
+In Development, if `Jwt:Key` is not configured, the API automatically creates a
+cryptographically random key on the first run and reuses it on later runs.
+The generated key is stored outside the repository in the current user's local
+application data directory (`%LOCALAPPDATA%\Khotwa\jwt-development.key` on Windows).
+An existing configured key (including user secrets or environment variables)
+takes precedence. No manual JWT setup is required for local development.
+Production and other non-Development environments still require an explicitly
+configured JWT key of at least 32 bytes.
 
 Apply the Entity Framework Core migrations to your development database before using the API:
 

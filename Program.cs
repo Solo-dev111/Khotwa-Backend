@@ -59,9 +59,20 @@ builder.Services.AddSwaggerGen();
 
 
 // JWT Authentication
-string jwtKey = builder.Configuration["Jwt:Key"]
-    ?? throw new InvalidOperationException(
-        "JWT key is not configured");
+string? jwtKey = builder.Configuration["Jwt:Key"];
+
+if (string.IsNullOrWhiteSpace(jwtKey))
+{
+    if (!builder.Environment.IsDevelopment())
+    {
+        throw new InvalidOperationException("JWT key is not configured");
+    }
+
+    // Keep the generated key in the effective configuration so both
+    // JwtBearer validation and AuthService signing use the same key.
+    jwtKey = DevelopmentJwtKey.GetOrCreate();
+    builder.Configuration["Jwt:Key"] = jwtKey;
+}
 
 byte[] keyBytes = Encoding.UTF8.GetBytes(jwtKey);
 
